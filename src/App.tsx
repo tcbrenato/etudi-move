@@ -7,10 +7,13 @@ import { LoginPage } from '@/pages/public/LoginPage';
 import { RegisterPage } from '@/pages/public/RegisterPage';
 import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage';
 import { UserDashboard } from '@/pages/user/UserDashboard';
+import { SearchTripsPage } from '@/pages/user/SearchTripsPage';
 import { DriverDashboard } from '@/pages/driver/DriverDashboard';
+import { PublishTripPage } from '@/pages/driver/PublishTripPage';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsersPage } from '@/pages/admin/AdminUsersPage';
 import { ProfilePage } from '@/pages/profile/ProfilePage';
+import { MessagesPage } from '@/pages/messages/MessagesPage';
 import { NotFoundPage, UnauthorizedPage, SuspendedPage } from '@/pages/system/SystemPages';
 
 function App() {
@@ -62,6 +65,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/trajets"
+            element={
+              <ProtectedRoute roles={['user']}>
+                <SearchTripsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/messages"
+            element={
+              <ProtectedRoute roles={['user', 'driver']}>
+                <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Driver */}
           <Route
@@ -77,6 +96,14 @@ function App() {
             element={
               <ProtectedRoute roles={['driver']}>
                 <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/driver/trips"
+            element={
+              <ProtectedRoute roles={['driver']}>
+                <PublishTripPage />
               </ProtectedRoute>
             }
           />

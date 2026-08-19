@@ -1,4 +1,8 @@
-import type { AccountStatus, UserRole } from '@/types';
+import type { AccountStatus, UserRole, TripDirection } from '@/types';
+
+export function directionLabel(direction: TripDirection): string {
+  return direction === 'to_campus' ? 'Vers le campus' : 'Depuis le campus';
+}
 
 export function roleLabel(role: UserRole): string {
   switch (role) {

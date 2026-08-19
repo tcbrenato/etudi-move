@@ -21,11 +21,15 @@ function getNavConfig(role: string): NavConfig {
     case 'driver':
       return { items: [
         { to: '/driver', label: 'Dashboard' },
+        { to: '/driver/trips', label: 'Mes trajets' },
+        { to: '/messages', label: 'Messages' },
         { to: '/driver/profile', label: 'Profil' },
       ]};
     default:
       return { items: [
         { to: '/dashboard', label: 'Accueil' },
+        { to: '/trajets', label: 'Trajets' },
+        { to: '/messages', label: 'Messages' },
         { to: '/profile', label: 'Profil' },
       ]};
   }

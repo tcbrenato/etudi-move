@@ -27,6 +27,7 @@ interface SignUpData {
   email: string;
   phone: string;
   password: string;
+  role: 'user' | 'driver';
 }
 
 interface ProfileUpdate {
@@ -110,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           first_name: data.firstName,
           last_name: data.lastName,
           phone: data.phone,
+          role: data.role,
         },
       },
     });

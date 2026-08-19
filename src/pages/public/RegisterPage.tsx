@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Mail, Lock, User, Phone, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, User, Phone, ArrowLeft, Bike, GraduationCap } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { Field } from '@/components/ui/Field';
 import { Spinner } from '@/components/ui/Feedback';
@@ -19,6 +19,7 @@ export function RegisterPage() {
   const { signUp } = useAuth();
   const navigate = useNavigate();
 
+  const [role, setRole] = useState<'user' | 'driver'>('user');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,7 +50,7 @@ export function RegisterPage() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await signUp({ firstName, lastName, email, phone, password });
+      await signUp({ firstName, lastName, email, phone, password, role });
       navigate('/login', { replace: true, state: { registered: true } });
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -77,6 +78,41 @@ export function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+              <div>
+                <label className="label">Je m'inscris en tant que</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setRole('user')}
+                    className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
+                      role === 'user'
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-300'
+                    }`}
+                  >
+                    <GraduationCap className="h-5 w-5" />
+                    Étudiant
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRole('driver')}
+                    className={`flex flex-col items-center gap-1.5 rounded-lg border-2 px-3 py-3 text-sm font-medium transition-colors ${
+                      role === 'driver'
+                        ? 'border-primary-500 bg-primary-50 text-primary-700'
+                        : 'border-neutral-200 text-neutral-500 hover:border-neutral-300'
+                    }`}
+                  >
+                    <Bike className="h-5 w-5" />
+                    Conducteur
+                  </button>
+                </div>
+                <p className="mt-1.5 text-xs text-neutral-400">
+                  {role === 'driver'
+                    ? 'Vous pourrez publier des trajets en moto et être contacté par des étudiants.'
+                    : 'Vous pourrez rechercher des trajets et contacter des conducteurs.'}
+                </p>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <Field
                   label="Prénom"
