@@ -23,7 +23,7 @@ export function RegisterPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+229 ');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -36,7 +36,7 @@ export function RegisterPage() {
     if (!lastName.trim()) e.lastName = 'Le nom est requis.';
     if (!email.trim()) e.email = 'L\'email est requis.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Email invalide.';
-    if (!phone.trim()) e.phone = 'Le téléphone est requis.';
+    if (phone.replace(/[^\d]/g, '').length < 11) e.phone = 'Numéro de téléphone invalide.';
     if (!password) e.password = 'Le mot de passe est requis.';
     else if (password.length < 6) e.password = 'Au moins 6 caractères.';
     if (password !== confirmPassword) e.confirmPassword = 'Les mots de passe ne correspondent pas.';
