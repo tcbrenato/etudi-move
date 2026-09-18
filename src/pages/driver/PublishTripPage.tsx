@@ -4,15 +4,22 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { LocationPicker } from '@/components/map/LocationPicker';
 import { EmptyState, Spinner } from '@/components/ui/Feedback';
 import { Badge } from '@/components/ui/Feedback';
-import { Route, Trash2, Send, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Route, Trash2, Send, ArrowUpRight, ArrowDownLeft, Check, X, User } from 'lucide-react';
 import {
   publishTrip,
   fetchMyTrips,
   setTripAvailability,
   deleteTrip,
 } from '@/lib/trips';
-import { directionLabel } from '@/utils/format';
-import type { GeoPoint, Trip, TripDirection } from '@/types';
+import { fetchBookingsForDriver, updateBookingStatus } from '@/lib/bookings';
+import {
+  directionLabel,
+  formatFcfa,
+  paymentMethodLabel,
+  paymentStatusColor,
+  paymentStatusLabel,
+} from '@/utils/format';
+import type { GeoPoint, Trip, TripDirection, BookingWithDetails } from '@/types';
 
 const navItems = [
   { to: '/driver', label: 'Dashboard' },
@@ -35,6 +42,9 @@ export function PublishTripPage() {
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
 
+  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(true);
+
   async function loadTrips() {
     if (!profile) return;
     setLoadingTrips(true);
@@ -46,10 +56,27 @@ export function PublishTripPage() {
     }
   }
 
+  async function loadBookings() {
+    if (!profile) return;
+    setLoadingBookings(true);
+    try {
+      const data = await fetchBookingsForDriver(profile.id);
+      setBookings(data);
+    } finally {
+      setLoadingBookings(false);
+    }
+  }
+
   useEffect(() => {
     loadTrips();
+    loadBookings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profile?.id]);
+
+  async function respondToBooking(bookingId: string, status: 'accepted' | 'declined') {
+    await updateBookingStatus(bookingId, status);
+    await Promise.all([loadBookings(), loadTrips()]);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -171,6 +198,69 @@ export function PublishTripPage() {
             Publier le trajet
           </button>
         </form>
+
+        <h2 className="mt-10 text-lg font-semibold text-neutral-800">Demandes de réservation</h2>
+
+        {loadingBookings ? (
+          <div className="flex justify-center py-6">
+            <Spinner className="text-xl text-primary-600" />
+          </div>
+        ) : bookings.filter(b => b.status === 'pending').length === 0 ? (
+          <p className="mt-2 text-sm text-neutral-500">Aucune demande en attente pour le moment.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {bookings
+              .filter(b => b.status === 'pending')
+              .map(booking => (
+                <div key={booking.id} className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    <div className="h-10 w-10 rounded-lg bg-primary-50 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-neutral-800">
+                        {booking.passenger_first_name} {booking.passenger_last_name} — {booking.passenger_phone}
+                      </p>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        {booking.origin_address} → {booking.destination_address} •{' '}
+                        {new Date(booking.departure_time).toLocaleString('fr-FR', {
+                          dateStyle: 'medium',
+                          timeStyle: 'short',
+                        })}
+                      </p>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-neutral-800">
+                          {formatFcfa(booking.fare)}
+                        </span>
+                        <Badge className={paymentStatusColor(booking.payment_status)}>
+                          {paymentMethodLabel(booking.payment_method)} ·{' '}
+                          {paymentStatusLabel(booking.payment_status, booking.payment_method)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => respondToBooking(booking.id, 'accepted')}
+                      className="btn-primary !px-3 !py-1.5 text-xs"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                      Accepter
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => respondToBooking(booking.id, 'declined')}
+                      className="btn-ghost !px-3 !py-1.5 text-xs text-error-500"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
 
         <h2 className="mt-10 text-lg font-semibold text-neutral-800">Mes trajets publiés</h2>
 

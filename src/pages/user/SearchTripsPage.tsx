@@ -4,11 +4,13 @@ import L from 'leaflet';
 import { AppLayout } from '@/layouts/AppLayout';
 import { ChatPanel } from '@/components/chat/ChatPanel';
 import { EmptyState, Spinner, Badge } from '@/components/ui/Feedback';
-import { Search, MessageCircle, MessageSquare, Clock, MapPinned, Ruler } from 'lucide-react';
+import { PaymentModal } from '@/components/booking/PaymentModal';
+import { Search, MessageCircle, MessageSquare, Clock, MapPinned, Ruler, CalendarCheck, Check, Route as RouteIcon, Wallet } from 'lucide-react';
 import { searchTrips, whatsAppLink, distanceKm } from '@/lib/trips';
-import { directionLabel } from '@/utils/format';
+import { createBooking, fetchMyBookings } from '@/lib/bookings';
+import { directionLabel, formatFcfa } from '@/utils/format';
 import { useAuth } from '@/auth/AuthContext';
-import type { TripWithDriver, TripDirection } from '@/types';
+import type { TripWithDriver, TripDirection, BookingStatus, PaymentMethod } from '@/types';
 
 const navItems = [
   { to: '/dashboard', label: 'Accueil' },
@@ -42,6 +44,8 @@ export function SearchTripsPage() {
   const [sortMode, setSortMode] = useState<SortMode>('time');
   const [trips, setTrips] = useState<TripWithDriver[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bookingStatuses, setBookingStatuses] = useState<Record<string, BookingStatus>>({});
+  const [payingTrip, setPayingTrip] = useState<TripWithDriver | null>(null);
 
   const [myPosition, setMyPosition] = useState<{ lat: number; lng: number } | null>(null);
   const [locating, setLocating] = useState(false);
@@ -57,10 +61,34 @@ export function SearchTripsPage() {
     }
   }
 
+  async function loadBookingStatuses() {
+    if (!profile) return;
+    const bookings = await fetchMyBookings(profile.id);
+    const statuses: Record<string, BookingStatus> = {};
+    for (const b of bookings) {
+      if (b.status === 'pending' || b.status === 'accepted') {
+        statuses[b.trip_id] = b.status;
+      }
+    }
+    setBookingStatuses(statuses);
+  }
+
   useEffect(() => {
     runSearch();
+    loadBookingStatuses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleConfirmPayment(
+    trip: TripWithDriver,
+    method: PaymentMethod,
+    phone: string | null
+  ) {
+    if (!profile) throw new Error('Session expirée, reconnectez-vous.');
+    const receipt = await createBooking(trip.id, profile.id, method, phone);
+    setBookingStatuses(prev => ({ ...prev, [trip.id]: 'pending' }));
+    return receipt;
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -248,6 +276,13 @@ export function SearchTripsPage() {
                     <Badge className="bg-neutral-100 text-neutral-600">
                       {directionLabel(trip.direction)}
                     </Badge>
+                    <span className="flex items-center gap-1.5">
+                      <RouteIcon className="h-3.5 w-3.5" />≈ {trip.distance_km.toLocaleString('fr-FR')} km
+                    </span>
+                    <span className="flex items-center gap-1.5 font-semibold text-neutral-800">
+                      <Wallet className="h-3.5 w-3.5" />
+                      {formatFcfa(trip.fare)}
+                    </span>
                     {myPosition && (
                       <span className="flex items-center gap-1.5">
                         <Ruler className="h-3.5 w-3.5" />
@@ -261,6 +296,26 @@ export function SearchTripsPage() {
                       {trip.driver_first_name} {trip.driver_last_name}
                     </p>
                     <div className="flex items-center gap-2">
+                      {bookingStatuses[trip.id] === 'accepted' ? (
+                        <Badge className="bg-success-100 text-success-700 !px-3 !py-1.5 text-xs">
+                          <Check className="h-3.5 w-3.5" />
+                          Réservé
+                        </Badge>
+                      ) : bookingStatuses[trip.id] === 'pending' ? (
+                        <Badge className="bg-neutral-100 text-neutral-500 !px-3 !py-1.5 text-xs">
+                          Demande envoyée
+                        </Badge>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPayingTrip(trip)}
+                          disabled={!trip.is_available}
+                          className="btn-primary !px-3 !py-1.5 text-xs"
+                        >
+                          <CalendarCheck className="h-3.5 w-3.5" />
+                          Réserver · {formatFcfa(trip.fare)}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setActiveChatTrip(trip)}
@@ -307,6 +362,15 @@ export function SearchTripsPage() {
           </div>
         )}
       </div>
+
+      {payingTrip && profile && (
+        <PaymentModal
+          trip={payingTrip}
+          defaultPhone={profile.phone}
+          onConfirm={(method, phone) => handleConfirmPayment(payingTrip, method, phone)}
+          onClose={() => setPayingTrip(null)}
+        />
+      )}
 
       {activeChatTrip && profile && (
         <ChatPanel

@@ -3,6 +3,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { AppLayout } from '@/layouts/AppLayout';
 import { roleLabel, statusLabel, statusColor } from '@/utils/format';
 import { Badge } from '@/components/ui/Feedback';
+import { MyBookingsSection } from '@/components/booking/MyBookingsSection';
 import { Bus, Compass, Bell } from 'lucide-react';
 
 const navItems = [
@@ -62,6 +63,8 @@ export function UserDashboard() {
             );
           })}
         </div>
+
+        <MyBookingsSection passengerId={profile.id} />
       </div>
     </AppLayout>
   );
